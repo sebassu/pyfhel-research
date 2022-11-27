@@ -7,6 +7,7 @@ from base64 import decodebytes
 app = Flask(__name__)
 
 @app.route('/fhe_mse', methods=['POST'])
+
 class Model():
     def __init__(self):
         super(Model,self).__init__()
@@ -66,6 +67,12 @@ class Model():
 class PyfhelClient():
     def __init__(self,parameters):
         super(PyfhelClient, self).__init__()
+        if "Student" not in parameters:
+            sPars = {}
+            self.Student = Student(sPars)
+        else:
+            self.Student = parameters["Student"]
+        
     
     def initHE():
         self.HE.keyGen()             # Generates both a public and a private key
@@ -85,7 +92,8 @@ class PyfhelServer():
     def associateCurator(self,curator):
         self.Curator = curator
     
-    def post():
+    
+    def post(self):
         print("Received Request!")
 
         # Read all bytestrings
@@ -149,7 +157,7 @@ class PyfhelPlatform():
                 self.servers.append(server)
         print(self.servers)
     
-    def startServers(initialPort):
+    def startServers(self,initialPort=5000):
         qServers = len(self.servers)
         print("Cantidad de Servidores: ",qServers)
         for i in range(qServers):
@@ -199,6 +207,22 @@ class Curator():
             self.results.append(t.getResults(modelId))
         return self.prepareData(self.results)
         #return self.results
+    
+    def getInfoNew(self,info):
+        HE_client = Pyfhel(context_params={'scheme':'ckks', 'n':2**13, 'scale':2**30, 'qi_sizes':[30]*5})
+        HE_client.keyGen()             # Generates both a public and a private key
+        HE_client.relinKeyGen()
+        HE_client.rotateKeyGen()
+        r = requests.post('http://127.0.0.1:5000/fhe_mse',
+        json={
+            'context': s_context.decode('cp437'),
+            'pk': s_public_key.decode('cp437'),
+            'rlk':s_relin_key.decode('cp437'),
+            'rtk':s_rotate_key.decode('cp437'),
+            'cx': s_cx.decode('cp437'),
+        })
+        c_res = PyCtxt(pyfhel=HE_client, bytestring=r.text.encode('cp437'))
+
     
     def prepareData(self, data):
         #Evaluar escenarios de envío de claves hacia el Student desde el Curator
@@ -292,6 +316,7 @@ class Student():
         # Encriptar los datos y enviar los datos con ruido incluído
         #print("Info request:")
         #print (f"{'Info:':<30}{info:<40}")
+        
         return self.Curator.getInfo(info)
     
     def addCurator(self,curator):
