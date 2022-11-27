@@ -1,3 +1,12 @@
+import numpy as np
+import uuid
+from flask import Flask
+from Pyfhel import Pyfhel, PyCtxt
+from base64 import decodebytes
+
+app = Flask(__name__)
+
+@app.route('/fhe_mse', methods=['POST'])
 class Model():
     def __init__(self):
         super(Model,self).__init__()
@@ -54,16 +63,111 @@ class Model():
             teachers.append(t)
         return teachers
 
+class PyfhelClient():
+    def __init__(self,parameters):
+        super(PyfhelClient, self).__init__()
+    
+    def initHE():
+        self.HE.keyGen()             # Generates both a public and a private key
+        self.HE.relinKeyGen()
+        self.HE.rotateKeyGen()
         
+        
+class PyfhelServer():
+    def __init__(self,parameters):
+        super(PyfhelServer, self).__init__()
+        if len(parameters)==0 or not "Curator" in parameters:
+            cPar = {}
+            self.Curator = Curator(cPar)
+        else:
+            self.Curator = parameters["Curator"]
+    
+    def associateCurator(self,curator):
+        self.Curator = curator
+    
+    def post():
+        print("Received Request!")
+
+        # Read all bytestrings
+        HE_server = Pyfhel()
+        HE_server.from_bytes_context(request.json.get('context').encode('cp437'))
+        HE_server.from_bytes_public_key(request.json.get('pk').encode('cp437'))
+        HE_server.from_bytes_relin_key(request.json.get('rlk').encode('cp437'))
+        HE_server.from_bytes_rotate_key(request.json.get('rtk').encode('cp437'))
+        cx = PyCtxt(pyfhel=HE_server, bytestring=request.json.get('cx').encode('cp437'))
+        print(f"[Server] received HE_server={HE_server} and cx={cx}")
+
+        # Encode weights in plaintext
+        ptxt_w = HE_server.encode(w)
+        
+        #######################################                                  
+        # Agregar Operaciones a realizar acá
+        #######################################
+                
+        return c_mean.to_bytes().decode('cp437')
+
+    def start(self,port=None):
+        ### Averiguar como utilizar modo debug de Flask
+        if (port is None):
+            app.run(host='0.0.0.0', port=5000) # Run, accessible via http://localhost:5000/
+        else:
+            app.run(host='0.0.0.0', port=port)
+        #pass
+    
+    def stopServer(self,port=None):
+        if port is None:
+            app.stop(host='0.0.0.0',port=5000)
+        else:
+            app.stop(host='0.0.0.0',port=port)
+    
+    def stop(self):
+        #app.stop()       ???????
+        pass
+
+class PyfhelPlatform():
+    def __init__(self,parameters):
+        super(PyfhelPlatform,self).__init__()
+        self.servers = []
+        self.clients = []
+        if len(parameters)==0 or parameters["ServersQ"] is None:
+            print("Error Initializing platform, please specify Servers quantity")
+        else:
+            qServers = parameters["ServersQ"]
+            if parameters["key_gen"] is None:
+                key_gen = parameters["key_gen"]
+            else:
+                key_gen = True
+            if "context_params" not in parameters:
+                context_params = {'scheme':'ckks', 'n':2**13, 'scale':2**30, 'qi_sizes':[30]*5}  
+            else:
+                context_params= parameters["context_params"]
+                #print(context_params)
+            print("Cantidad de Servidores a crear : ",qServers)
+            for i in range(qServers):
+                print("Initializing Server : ",i)
+                server = PyfhelServer(context_params)
+                self.servers.append(server)
+        print(self.servers)
+    
+    def startServers(initialPort):
+        qServers = len(self.servers)
+        print("Cantidad de Servidores: ",qServers)
+        for i in range(qServers):
+                print("Starting Server : ",i)
+                server = self.servers[i]
+                server.start(initialPort+i)
+    
 class Curator():
     def __init__(self,parameters):
         super(Curator, self).__init__()
-        self.HEC = Pyfhel(context_params={'scheme':'ckks', 'n':2**13, 'scale':2**30, 'qi_sizes':[30]*5}) 
+        #self.HEC = Pyfhel(context_params={'scheme':'ckks', 'n':2**13, 'scale':2**30, 'qi_sizes':[30]*5}) 
         self.data = {}
         #print(type(parameters["teachers"]))
-        if len(parameters)==0 or parameters["teachers"] is None:
+        if len(parameters)==0 or not "teachers" in parameters:
+            self.id = uuid.uuid4()
             self.teachers = []
         else:
+            print(parameters["teachers"])
             if len(parameters["teachers"]) > 0:
                 self.teachers = parameters["teachers"]
             else:
@@ -73,12 +177,7 @@ class Curator():
         #print(f"Curator created !!!")
         #print("Parameters:")
         #print(parameters)
-    
-    def initHE():
-        self.HE.keyGen()             # Generates both a public and a private key
-        self.HE.relinKeyGen()
-        self.HE.rotateKeyGen()
-    
+        
     def createTeachers(self, size):
         for i in range(size):
             t = Teacher()
