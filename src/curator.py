@@ -18,13 +18,6 @@ except ImportError:
     print("This demo requires the `requests` python module (install with pip). Exiting.")
     exit(0)
 
-# Server weights -> encode in plaintext
-w_1 = np.array([0., 0., 1.], dtype=np.float64)
-w_2 = np.array([0., 1., 0.], dtype=np.float64)
-w_3 = np.array([0., 0., 1.], dtype=np.float64)
-w_4 = np.array([1., 0., 0.], dtype=np.float64)
-w_5 = np.array([0., 0., 1.], dtype=np.float64)
-
 HE_curator = Pyfhel()
 ckks_params = {'scheme': 'CKKS', 'n': 2**14, 'scale': 2**30, 'qi_sizes': [60, 30, 30, 30, 60] }
 HE_curator.contextGen(**ckks_params)  # Generate context for bfv scheme
@@ -34,7 +27,32 @@ HE_curator.rotateKeyGen()
 s_context    = HE_curator.to_bytes_context()
 s_public_key = HE_curator.to_bytes_public_key()
 
+private_budget = 1000000
+
 list_teachers = []
+students = {}
+
+def exist_student(id):
+    print(students.keys)
+    if id in students:
+        return True
+    else:
+        return False
+
+def add_student(id, pk):
+    students[id] = (pk, private_budget)
+
+def get_pb(id):
+    _,s_pb = students.get(id)
+    return s_pb
+
+def modify_pb(id):
+    s_pk,s_pb = students.get(id)
+    if s_pb > 0:
+        new_pb = s_pb-1000
+    students[id] = (s_pk, new_pb)
+    return new_pb
+
 
 def predictions(s_context_student, s_public_key_student, cx_response):
     
@@ -77,20 +95,33 @@ def post():
     s_context_student = request.json.get('context').encode('cp437')
     s_public_key_student = request.json.get('pk').encode('cp437')
     cx_response = PyCtxt(pyfhel=HE_curator, bytestring=request.json.get('cx').encode('cp437'))
+    id = request.json.get('id')
 
-    count = predictions(s_context_student, s_public_key_student, cx_response)
+    if exist_student(id):
+        print(f"[Curator] The student already exists. ")
+    else:
+        add_student(id, s_public_key_student)
+        print(f"[Curator] The student is new, it was added. ")
+    
+    if(get_pb(id) == 0):
+        print("[Curator] The student has no credits left!")
+        return 'The student has no credits left'
+    else:
+        count = predictions(s_context_student, s_public_key_student, cx_response)
 
-    noise_1 = np.random.laplace(0., 1./0.05)
-    noise_2 = np.random.laplace(0., 1./0.05)
-    noise_3 = np.random.laplace(0., 1./0.05)
-    noise = np.array([noise_1, noise_2, noise_3])
+        noise_1 = np.random.laplace(0., 1./0.05)
+        noise_2 = np.random.laplace(0., 1./0.05)
+        noise_3 = np.random.laplace(0., 1./0.05)
+        noise = np.array([noise_1, noise_2, noise_3])
 
-    dp_count = count + noise
-   
-    print(f"[Curator] Sum computed! Responding: {dp_count}")
+        dp_count = count + noise
 
-    # Serialize encrypted result and answer it back
-    return dp_count.to_bytes().decode('cp437')
+        modify_pb(id)
+
+        print(f"[Curator] Sum computed! Responding: {dp_count}")
+
+        # Serialize encrypted result and answer it back
+        return dp_count.to_bytes().decode('cp437')
 
 @app.route('/get_pk', methods=['POST'])
 def get_pk():
