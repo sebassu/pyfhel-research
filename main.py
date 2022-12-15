@@ -49,45 +49,16 @@ if(USE_REAL_SERVER):
 
     print(f"[Main] Launching {n_teachers} Teachers ...")
 
-    process_Teacher1 = subprocess.Popen(
-            ["python", str(dir / "src//teacher.py"),'-p',str(5010)],
-            stderr=subprocess.STDOUT,
-        )
-    processes.append(process_Teacher1)
-    time.sleep(6)       # Wait for server initialization
-    print(f"[Main] Teacher 1 initialized...")
-
-    process_Teacher1 = subprocess.Popen(
-            ["python", str(dir / "src//teacher.py"),'-p',str(5010)],
-            stderr=subprocess.STDOUT,
-        )
-    processes.append(process_Teacher1)
-    time.sleep(6)       # Wait for server initialization
-    print(f"[Main] Teacher 1 initialized...")
-
-    process_Teacher2 = subprocess.Popen(
-            ["python", str(dir / "src//teacher.py"),'-p',str(5011)],
-            stderr=subprocess.STDOUT,
-        )
-    processes.append(process_Teacher2)
-    time.sleep(6)       # Wait for server initialization
-    print(f"[Main] Teacher 2 initialized...")
-
-    process_Teacher3 = subprocess.Popen(
-            ["python", str(dir / "src//teacher.py"),'-p',str(5012)],
-            stderr=subprocess.STDOUT,
-        )
-    processes.append(process_Teacher3)
-    time.sleep(6)       # Wait for server initialization
-    print(f"[Main] Teacher 3 initialized...")
-
-    process_Teacher4 = subprocess.Popen(
-            ["python", str(dir / "src//teacher.py"),'-p',str(5013)],
-            stderr=subprocess.STDOUT,
-        )
-    processes.append(process_Teacher4)
-    time.sleep(6)       # Wait for server initialization
-    print(f"[Main] Teacher 4 initialized...")
+    for i in range(n_teachers):
+        port = 5010+i
+        cant = i+1
+        process_Teacher = subprocess.Popen(
+                ["python", str(dir / "src//teacher.py"),'-p',str(port)],
+                stderr=subprocess.STDOUT,
+            )
+        processes.append(process_Teacher)
+        time.sleep(6)       # Wait for server initialization
+        print(f"[Main] Teacher {cant} initialized...")
         
 
 else:
@@ -121,13 +92,13 @@ else:
 #  We map the bytes into strings based on https://stackoverflow.com/a/27527728
 if(USE_REAL_SERVER):
     expected1 = student1.run()
-    print(f"[Student 1] Response received! Argmax result is {expected1}")
+    print(f"[Student {student1.id}] Response received! Argmax result is {expected1}")
 
     expected2 = student2.run()
-    print(f"[Student 2] Response received! Argmax result is {expected2}")
+    print(f"[Student {student2.id}] Response received! Argmax result is {expected2}")
 
     expected1_2 = student1.run()
-    print(f"[Student 1] Response received! Argmax result is {expected1_2}")
+    print(f"[Student {student1.id}] Response received! Argmax result is {expected1_2}")
 
 
 else: # Mocking server code (from Demo_5bis_CS_Server.py)

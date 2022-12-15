@@ -75,11 +75,12 @@ class Student:
                 'context': s_context.decode('cp437'),
                 'pk': s_public_key.decode('cp437'),
                 'cx': s_cx.decode('cp437'),
-                'id': '2f1759fc-7c98-11ed-a1eb-0242ac120002'
+                'id': str(self.id),
             })
         c_res = PyCtxt(pyfhel=self.HE, bytestring=r.text.encode('cp437'))
 
         res = self.HE.decrypt(c_res)[:self.n_classes]
+        print(f"[Student {self.id}] Result received={res}")
 
         # Checking result
         expected = np.argmax(res)

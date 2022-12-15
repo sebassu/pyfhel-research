@@ -1,4 +1,4 @@
-USE_REAL_SERVER: bool = False
+USE_REAL_SERVER: bool = True
 
 if not USE_REAL_SERVER:
     exit() # skip demo if not running on real server mode
@@ -9,7 +9,7 @@ import random
 from Pyfhel import Pyfhel, PyCtxt
 from base64 import decodebytes
 try:
-    from flask import Flask, request, jsonify
+    from flask import Flask, request
 except ImportError:
     print("This demo requires the `flask` python module (install with pip). Exiting.")
     exit(0)
@@ -86,9 +86,9 @@ def post():
     HE_student.from_bytes_public_key(request.json.get('pk').encode('cp437'))
     cx = PyCtxt(pyfhel=HE_teacher, bytestring=request.json.get('cx').encode('cp437'))
     data = HE_teacher.decrypt(cx)[:3]
-    print(data)
 
-    print(f"[Teacher {url}] received HE_student={HE_student} and cx={cx}")
+    print(f"[Teacher {url}] received HE_student={HE_student} and data={data}")
+    print(f"[Teacher {url}] predictions result={w}")
 
     ctx = HE_student.encrypt(w)
 

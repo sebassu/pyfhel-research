@@ -4,9 +4,7 @@ if not USE_REAL_SERVER:
     exit() # skip demo if not running on real server mode
 
 import numpy as np
-import asyncio
 from Pyfhel import Pyfhel, PyCtxt
-from base64 import decodebytes
 try:
     from flask import Flask, request, jsonify
 except ImportError:
@@ -96,7 +94,7 @@ def post():
     s_public_key_student = request.json.get('pk').encode('cp437')
     cx_response = PyCtxt(pyfhel=HE_curator, bytestring=request.json.get('cx').encode('cp437'))
     id = request.json.get('id')
-
+    
     if exist_student(id):
         print(f"[Curator] The student already exists. ")
     else:
