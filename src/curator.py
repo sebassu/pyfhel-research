@@ -4,6 +4,7 @@ if not USE_REAL_SERVER:
     exit() # skip demo if not running on real server mode
 
 import numpy as np
+from math import log
 from Pyfhel import Pyfhel, PyCtxt
 try:
     from flask import Flask, request, jsonify
@@ -24,11 +25,23 @@ HE_curator.rotateKeyGen()
 
 s_context    = HE_curator.to_bytes_context()
 s_public_key = HE_curator.to_bytes_public_key()
-
 private_budget = 1000000
-
+p_budget = [20.756462732485115]
 list_teachers = []
 students = {}
+
+def privacy_loss_calculation(t, gamma, delta):
+  result = []
+  for l in range(1,1000):
+    value = 1/l*(2*t*gamma*gamma*l*(l+1)-log(delta)) 
+    result.append(value)
+  return min(result)
+
+def get_private_budget():
+    return p_budget[0]
+
+def update_private_budget(pb):
+    p_budget[0] = p_budget[0] - pb
 
 def exist_student(id):
     print(students.keys)
@@ -40,7 +53,7 @@ def exist_student(id):
 def add_student(id, pk):
     students[id] = (pk, private_budget)
 
-def get_pb(id):
+def get_pb():
     _,s_pb = students.get(id)
     return s_pb
 
@@ -101,21 +114,27 @@ def post():
         add_student(id, s_public_key_student)
         print(f"[Curator] The student is new, it was added. ")
     
-    if(get_pb(id) == 0):
-        print("[Curator] The student has no credits left!")
-        return 'The student has no credits left'
+    pl = privacy_loss_calculation(1,0.05,pow(10,-5))
+
+    if (pl > get_private_budget()):
+        print("[Curator] The loss of privacy of these queries exceeds the privacy budget.")
+        res = np.array([-1.0], dtype=np.float64)
+        HE_response = Pyfhel()
+        HE_response.from_bytes_context(s_context_student)
+        HE_response.from_bytes_public_key(s_public_key_student)
+        ctx = HE_response.encrypt(res)
+        return ctx.to_bytes().decode('cp437') 
     else:
         count = predictions(s_context_student, s_public_key_student, cx_response)
 
-        noise_1 = np.random.laplace(0., 1./0.05)
-        noise_2 = np.random.laplace(0., 1./0.05)
-        noise_3 = np.random.laplace(0., 1./0.05)
-        noise = np.array([noise_1, noise_2, noise_3])
+        sensitivity = 1.0 / 5
+
+        noise = np.random.laplace(0., sensitivity/0.05,3)
 
         dp_count = count + noise
 
-        modify_pb(id)
-
+        update_private_budget(pl)
+        print(f"[Curator] Private Budget: {get_private_budget()}")
         print(f"[Curator] Sum computed! Responding: {dp_count}")
 
         # Serialize encrypted result and answer it back

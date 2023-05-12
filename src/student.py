@@ -78,10 +78,12 @@ class Student:
                 'id': str(self.id),
             })
         c_res = PyCtxt(pyfhel=self.HE, bytestring=r.text.encode('cp437'))
-
-        res = self.HE.decrypt(c_res)[:self.n_classes]
-        print(f"[Student {self.id}] Result received={res}")
-
-        # Checking result
-        expected = np.argmax(res)
+        res = self.HE.decrypt(c_res)
+        if(res[:1] == -1.0):
+            print("[Student] The loss of privacy of these queries exceeds the privacy budget.")
+        else:
+            res = res[:self.n_classes]
+            print(f"[Student {self.id}] Result received={res}")
+            # Checking result
+            expected = np.argmax(res)
         return expected
